@@ -4,7 +4,7 @@
 
 sensor_msgs::msg::Imu Mpu6050;//Instantiate an IMU object //实例化IMU对象 
 
-using std::placeholders::_1;
+using std::placeholders::_1;//! 是一个占位符，表示绑定函数的第一个参数
 using namespace std;
 rclcpp::Node::SharedPtr node_handle = nullptr;
 

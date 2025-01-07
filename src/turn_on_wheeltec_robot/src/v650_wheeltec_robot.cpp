@@ -486,17 +486,17 @@ Function: Constructor, executed only once, for initialization
 turn_on_robot::turn_on_robot()
 : rclcpp::Node ("wheeltec_robot")
 {
-  Sampling_Time=0;
-  Power_voltage=0;
+  Sampling_Time=0;//!采样时间，用于积分速度获得位移(里程)
+  Power_voltage=0;//!电池电压
   //Clear the data
   //清空数据
-  memset(&Robot_Pos, 0, sizeof(Robot_Pos));
-  memset(&Robot_Vel, 0, sizeof(Robot_Vel));
-  memset(&Receive_Data, 0, sizeof(Receive_Data)); 
-  memset(&Send_Data, 0, sizeof(Send_Data));
-  memset(&Mpu6050_Data, 0, sizeof(Mpu6050_Data));
+  memset(&Robot_Pos, 0, sizeof(Robot_Pos));//!机器人位置
+  memset(&Robot_Vel, 0, sizeof(Robot_Vel));//!机器人速度
+  memset(&Receive_Data, 0, sizeof(Receive_Data)); //!下位机向上位机发送的数据
+  memset(&Send_Data, 0, sizeof(Send_Data));//!上位机向下位机发送的数据
+  memset(&Mpu6050_Data, 0, sizeof(Mpu6050_Data));//!读取到的MPU6050数据
   
-  int serial_baud_rate = 115200;
+  int serial_baud_rate = 115200;//!串口通信波特率115200
 
   this->declare_parameter<int>("serial_baud_rate");
   this->declare_parameter<std::string>("usart_port_name", "/dev/wheeltec_controller");

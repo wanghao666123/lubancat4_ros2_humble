@@ -497,6 +497,7 @@ bool turn_on_robot::Get_Sensor_Data_New()
   //uint8_t i=0;
   uint8_t check=0,check2=0, error=1,error2=1,Receive_Data_Pr[1]; //Temporary variable to save the data of the lower machine //临时变量，保存下位机数据
   static int count,count2; //Static variable for counting //静态变量，用于计数
+  //!每次只读取一个字节数据
   Stm32_Serial.read(Receive_Data_Pr,sizeof(Receive_Data_Pr)); //Read the data sent by the lower computer through the serial port //通过串口读取下位机发送过来的数据
 
   /*//View the received raw data directly and debug it for use//直接查看接收到的原始数据，调试使用
@@ -505,7 +506,15 @@ bool turn_on_robot::Get_Sensor_Data_New()
   Receive_Data_Pr[8],Receive_Data_Pr[9],Receive_Data_Pr[10],Receive_Data_Pr[11],Receive_Data_Pr[12],Receive_Data_Pr[13],Receive_Data_Pr[14],Receive_Data_Pr[15],
   Receive_Data_Pr[16],Receive_Data_Pr[17],Receive_Data_Pr[18],Receive_Data_Pr[19],Receive_Data_Pr[20],Receive_Data_Pr[21],Receive_Data_Pr[22],Receive_Data_Pr[23]);
   */  
-
+  //!总共24位
+  //!帧头
+  //!小车软件失能标志位
+  //!三轴速度
+  //!三轴加速度
+  //!三轴角速度
+  //!电池电压
+  //!数据校验位
+  //!帧尾
   Receive_Data.rx[count] = Receive_Data_Pr[0]; //Fill the array with serial data //串口数据填入数组
   Receive_AutoCharge_Data.rx[count2] = Receive_Data_Pr[0];
 
@@ -625,55 +634,58 @@ void turn_on_robot::Control()
   {
     try
     {
-    //_Now = ros::Time::now();
-    _Now = rclcpp::Node::now();
-    Sampling_Time = (_Now - _Last_Time).seconds();  //Retrieves time interval, which is used to integrate velocity to obtain displacement (mileage) 
-                                                 //获取时间间隔，用于积分速度获得位移(里程) 
-    if (true == Get_Sensor_Data_New()) //The serial port reads and verifies the data sent by the lower computer, and then the data is converted to international units
-                                   //通过串口读取并校验下位机发送过来的数据，然后数据转换为国际单位
-    {
-      //Odometer error correction //里程计误差修正
-      Robot_Vel.X = Robot_Vel.X*odom_x_scale;
-      Robot_Vel.Y = Robot_Vel.Y*odom_y_scale;
-      if( Robot_Vel.Z>=0 )
-        Robot_Vel.Z = Robot_Vel.Z*odom_z_scale_positive;
-      else
-        Robot_Vel.Z = Robot_Vel.Z*odom_z_scale_negative;
+      //_Now = ros::Time::now();
+      _Now = rclcpp::Node::now();
+      Sampling_Time = (_Now - _Last_Time).seconds();  //Retrieves time interval, which is used to integrate velocity to obtain displacement (mileage) 
+                                                  //获取时间间隔，用于积分速度获得位移(里程) 
+      if (true == Get_Sensor_Data_New()) //The serial port reads and verifies the data sent by the lower computer, and then the data is converted to international units
+                                    //通过串口读取并校验下位机发送过来的数据，然后数据转换为国际单位
+      {
+        //Odometer error correction //里程计误差修正
+        //!odom_x_scale = 1.0
+        //!odom_y_scale = 1.0
+        //!odom_z_scale_positive = 1.0
+        //!odom_z_scale_negative = 1.0
+        Robot_Vel.X = Robot_Vel.X*odom_x_scale;
+        Robot_Vel.Y = Robot_Vel.Y*odom_y_scale;
+        if( Robot_Vel.Z>=0 )
+          Robot_Vel.Z = Robot_Vel.Z*odom_z_scale_positive;
+        else
+          Robot_Vel.Z = Robot_Vel.Z*odom_z_scale_negative;
+        //!将机器人的自身坐标系的x和y方向的速度坐标变换到世界坐标系上的x和y方向的速度
+        Robot_Pos.X+=(Robot_Vel.X * cos(Robot_Pos.Z) - Robot_Vel.Y * sin(Robot_Pos.Z)) * Sampling_Time; //Calculate the displacement in the X direction, unit: m //计算X方向的位移，单位：m
+        Robot_Pos.Y+=(Robot_Vel.X * sin(Robot_Pos.Z) + Robot_Vel.Y * cos(Robot_Pos.Z)) * Sampling_Time; //Calculate the displacement in the Y direction, unit: m //计算Y方向的位移，单位：m
+        Robot_Pos.Z+=Robot_Vel.Z * Sampling_Time; //The angular displacement about the Z axis, in rad //绕Z轴的角位移，单位：rad 
 
-      Robot_Pos.X+=(Robot_Vel.X * cos(Robot_Pos.Z) - Robot_Vel.Y * sin(Robot_Pos.Z)) * Sampling_Time; //Calculate the displacement in the X direction, unit: m //计算X方向的位移，单位：m
-      Robot_Pos.Y+=(Robot_Vel.X * sin(Robot_Pos.Z) + Robot_Vel.Y * cos(Robot_Pos.Z)) * Sampling_Time; //Calculate the displacement in the Y direction, unit: m //计算Y方向的位移，单位：m
-      Robot_Pos.Z+=Robot_Vel.Z * Sampling_Time; //The angular displacement about the Z axis, in rad //绕Z轴的角位移，单位：rad 
+        //Calculate the three-axis attitude from the IMU with the angular velocity around the three-axis and the three-axis acceleration
+        //通过IMU绕三轴角速度与三轴加速度计算三轴姿态
+        Quaternion_Solution(Mpu6050.angular_velocity.x, Mpu6050.angular_velocity.y, Mpu6050.angular_velocity.z,\
+                  Mpu6050.linear_acceleration.x, Mpu6050.linear_acceleration.y, Mpu6050.linear_acceleration.z);
 
-      //Calculate the three-axis attitude from the IMU with the angular velocity around the three-axis and the three-axis acceleration
-      //通过IMU绕三轴角速度与三轴加速度计算三轴姿态
-      Quaternion_Solution(Mpu6050.angular_velocity.x, Mpu6050.angular_velocity.y, Mpu6050.angular_velocity.z,\
-                Mpu6050.linear_acceleration.x, Mpu6050.linear_acceleration.y, Mpu6050.linear_acceleration.z);
+        Publish_Odom();      //Pub the speedometer topic //发布里程计话题
+        Publish_ImuSensor(); //Pub the IMU topic //发布IMU话题    
+        Publish_Voltage();   //Pub the topic of power supply voltage //发布电源电压话题
 
-      Publish_Odom();      //Pub the speedometer topic //发布里程计话题
-      Publish_ImuSensor(); //Pub the IMU topic //发布IMU话题    
-      Publish_Voltage();   //Pub the topic of power supply voltage //发布电源电压话题
-
-      _Last_Time = _Now; //Record the time and use it to calculate the time interval //记录时间，用于计算时间间隔
+        _Last_Time = _Now; //Record the time and use it to calculate the time interval //记录时间，用于计算时间间隔
+        
+      }
       
-    }
-    
-    //自动回充数据话题
-    if(check_AutoCharge_data)
-    {
-      Publish_Charging();  //Pub a topic about whether the robot is charging //发布机器人是否在充电的话题
-      Publish_RED();       //Pub the topic whether the robot finds the infrared signal (charging station) //发布机器人是否寻找到红外信号(充电桩)的话题
-      Publish_ChargingCurrent(); //Pub the charging current topic //发布充电电流话题
-      check_AutoCharge_data = false;
-    }
+      //自动回充数据话题
+      if(check_AutoCharge_data)
+      {
+        Publish_Charging();  //Pub a topic about whether the robot is charging //发布机器人是否在充电的话题
+        Publish_RED();       //Pub the topic whether the robot finds the infrared signal (charging station) //发布机器人是否寻找到红外信号(充电桩)的话题
+        Publish_ChargingCurrent(); //Pub the charging current topic //发布充电电流话题
+        check_AutoCharge_data = false;
+      }
 
-    rclcpp::spin_some(this->get_node_base_interface());   //The loop waits for the callback function //循环等待回调函数
+      rclcpp::spin_some(this->get_node_base_interface());   //The loop waits for the callback function //循环等待回调函数
     }
-    
     catch (const rclcpp::exceptions::RCLError & e )
-  {
-  RCLCPP_ERROR(this->get_logger(),"unexpectedly failed whith %s",e.what()); 
+    {
+    RCLCPP_ERROR(this->get_logger(),"unexpectedly failed whith %s",e.what()); 
+    }
   }
-}
 }
 /**************************************
 Date: January 28, 2021

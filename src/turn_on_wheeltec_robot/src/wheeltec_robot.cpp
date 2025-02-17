@@ -130,6 +130,7 @@ void turn_on_robot::Publish_Odom()
 {
     //Convert the Z-axis rotation Angle into a quaternion for expression 
     //把Z轴转角转换为四元数进行表达
+    //!四元数 q 就表示了一个绕 Z 轴旋转的姿态
     tf2::Quaternion q;
     q.setRPY(0,0,Robot_Pos.Z);
     geometry_msgs::msg::Quaternion odom_quat=tf2::toMsg(q);
@@ -140,6 +141,7 @@ void turn_on_robot::Publish_Odom()
     odom.pose.pose.position.x = Robot_Pos.X; //Position //位置
     odom.pose.pose.position.y = Robot_Pos.Y;
     odom.pose.pose.position.z = Robot_Pos.Z;
+    //!机器人的方向
     odom.pose.pose.orientation = odom_quat; //Posture, Quaternion converted by Z-axis rotation //姿态，通过Z轴转角转换的四元数
 
     odom.child_frame_id = robot_frame_id; // Odometer TF subcoordinates //里程计TF子坐标
@@ -659,10 +661,12 @@ void turn_on_robot::Control()
 
         //Calculate the three-axis attitude from the IMU with the angular velocity around the three-axis and the three-axis acceleration
         //通过IMU绕三轴角速度与三轴加速度计算三轴姿态
+        //!通过三轴加速度和角速度解算出四元数
         Quaternion_Solution(Mpu6050.angular_velocity.x, Mpu6050.angular_velocity.y, Mpu6050.angular_velocity.z,\
                   Mpu6050.linear_acceleration.x, Mpu6050.linear_acceleration.y, Mpu6050.linear_acceleration.z);
-
+        //!时间戳，父节点id，X,Y,Z三轴位置，机器人方向，子节点id，X,Y,Z三轴速度，位置和速度协方差矩阵
         Publish_Odom();      //Pub the speedometer topic //发布里程计话题
+        //!时间戳，IMU对应的TF坐标系名称，姿态（四元数），三轴姿态协方差矩阵，三轴角速度，三轴角速度协方差矩阵，三轴线性加速度
         Publish_ImuSensor(); //Pub the IMU topic //发布IMU话题    
         Publish_Voltage();   //Pub the topic of power supply voltage //发布电源电压话题
 

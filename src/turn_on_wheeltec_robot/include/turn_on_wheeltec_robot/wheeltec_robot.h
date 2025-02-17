@@ -83,6 +83,8 @@ extern sensor_msgs::msg::Imu Mpu6050;  //External variables, IMU topic data //�
 
 //Covariance matrix for speedometer topic data for robt_pose_ekf feature pack
 //协方差矩阵，用于里程计话题数据，用于robt_pose_ekf功能包
+//!odom_pose_covariance 矩阵的 Z 轴位置误差和姿态误差都非常大，Z 轴的测量精度较差，roll 和 pitch 的误差也很大。
+//!odom_pose_covariance2 矩阵的 Z 轴位置误差依然很大，但 X 轴位置误差非常小，表示 X 方向的定位非常可靠，姿态误差较 odom_pose_covariance 更小，特别是偏航角（yaw）的误差接近零
 const double odom_pose_covariance[36]   = {1e-3,    0,    0,   0,   0,    0, 
 										      0, 1e-3,    0,   0,   0,    0,
 										      0,    0,  1e6,   0,   0,    0,

@@ -58,7 +58,7 @@ void turn_on_robot::Cmd_Vel_Callback(const geometry_msgs::msg::Twist::SharedPtr 
 
   Send_Data.tx[0]=FRAME_HEADER; //frame head 0x7B //帧头0X7B
   Send_Data.tx[1] = AutoRecharge; //set aside //预留位
-  Send_Data.tx[2] = 0; //set aside //预留位
+  Send_Data.tx[2] = 0; //set aside // 预留位
 
   //The target velocity of the X-axis of the robot
   //机器人x轴的目标线速度

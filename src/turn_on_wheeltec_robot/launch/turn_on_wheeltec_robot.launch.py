@@ -82,6 +82,7 @@ def generate_launch_description():
     #!!!At the same time, you need to modify ld.add_action(minibot_type) and #ld.add_action(flagship_type)
     
     #minibot_type 启动文件 robot_mode_description_minibot.launch.py，并传递一个参数 mini_akm，用于选择机器人模型（比如 mini_akm）
+    #当执行当前启动文件时，会启动 robot_mode_description_minibot.launch.py 文件中的内容，并且 mini_akm 参数的值为 true，这个参数可以用来在被引用的启动文件中控制某些特定的节点或行为
     minibot_type = IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(launch_dir, 'robot_mode_description_minibot.launch.py')),
             launch_arguments={'mini_akm': 'true'}.items(),

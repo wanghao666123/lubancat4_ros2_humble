@@ -10,7 +10,7 @@ from launch_ros.actions import LoadComposableNodes
 from launch_ros.actions import Node
 from launch_ros.descriptions import ComposableNode
 from nav2_common.launch import RewrittenYaml
-
+#使用 get_package_share_directory 获取包 wheeltec_robot_urdf 的共享目录路径,将路径和 URDF 文件名连接起来，作为参数传递给 robot_state_publisher 节点
 def generate_robot_node(robot_urdf,child):
     return launch_ros.actions.Node(
         package='robot_state_publisher',
@@ -18,7 +18,7 @@ def generate_robot_node(robot_urdf,child):
         name=f'robot_state_publisher_{child}',
         arguments=[os.path.join(get_package_share_directory('wheeltec_robot_urdf'), 'urdf', robot_urdf)],
     )
-
+#发布从 parent 坐标系到 child 坐标系的静态坐标变换（平移和旋转）
 def generate_static_transform_publisher_node(translation, rotation, parent, child):
     return launch_ros.actions.Node(
         package='tf2_ros',
@@ -32,12 +32,14 @@ def generate_launch_description():
     r3s_4wd = LaunchConfiguration('r3s_4wd', default='false')
     
     mini_mec = LaunchConfiguration('mini_mec', default='false')
+    #mini_akm 配置参数通过 LaunchConfiguration 来获取。如果 mini_akm 被设置为 'true'，那么就会启动与 mini_akm 相关的节点（例如 mini_akm_robot.urdf
     mini_akm = LaunchConfiguration('mini_akm', default='false')
     mini_tank = LaunchConfiguration('mini_tank', default='false')
     mini_4wd = LaunchConfiguration('mini_4wd', default='false')
     mini_diff = LaunchConfiguration('mini_diff', default='false')
     brushless_senior_diff = LaunchConfiguration('brushless_senior_diff', default='false')
-
+    #IfCondition(r3s_mec): 这是条件判断，只有当 r3s_mec 为 true 时，才会启动 r3s_mec_ 相关的动作
+    #在 actions 列表中，启动了 robot_state_publisher 节点来加载 r3s_mec_robot.urdf 和两个静态坐标变换发布节点（分别发布 laser 和 camera_link 的静态变换）
     r3s_mec_ = GroupAction(
         condition=IfCondition(r3s_mec), 
         actions=[
